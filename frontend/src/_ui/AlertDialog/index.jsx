@@ -20,10 +20,7 @@ export default function AlertDialog({
         `animation-fade ${!checkForBackground ? 'home-modal-component' : 'home-modal-component-editor'} ${
           darkMode && 'dark-theme'
         }`,
-        customClassName,
-        {
-          dark: checkForBackground && darkMode,
-        }
+        customClassName
       )}
       show={show}
       size={size}
@@ -35,7 +32,7 @@ export default function AlertDialog({
       centered
       data-cy={'modal-component'}
       style={{ zIndex: 9992 }}
-      // backdropClassName="home-modal-backdrop"
+      backdropClassName={!checkForBackground && 'home-modal-backdrop'}
     >
       {title && (
         <Modal.Header>

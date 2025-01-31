@@ -20,6 +20,7 @@ import { decode } from 'js-base64';
 import { User } from 'src/decorators/user.decorator';
 import { DataSource } from 'src/entities/data_source.entity';
 import { DataSourceScopes } from 'src/helpers/data_source.constants';
+import { getServiceAndRpcNames } from '../helpers/utils.helper';
 
 @Controller({
   path: 'data_sources',
@@ -46,6 +47,10 @@ export class GlobalDataSourcesController {
     }
 
     const decamelizedDatasources = dataSources.map((dataSource) => {
+      if (dataSource.pluginId) {
+        return dataSource;
+      }
+
       if (dataSource.kind === 'openapi') {
         const { options, ...objExceptOptions } = dataSource;
         const tempDs = decamelizeKeys(objExceptOptions);
@@ -64,7 +69,15 @@ export class GlobalDataSourcesController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async createGlobalDataSources(@User() user, @Body() createDataSourceDto: CreateDataSourceDto) {
-    const { kind, name, options, app_version_id: appVersionId, plugin_id: pluginId, scope } = createDataSourceDto;
+    const {
+      kind,
+      name,
+      options,
+      app_version_id: appVersionId,
+      plugin_id: pluginId,
+      scope,
+      environment_id,
+    } = createDataSourceDto;
 
     const ability = await this.globalDataSourceAbilityFactory.globalDataSourceActions(user);
 
@@ -72,6 +85,15 @@ export class GlobalDataSourcesController {
       throw new ForbiddenException('You do not have permissions to perform this action');
     }
 
+    if (kind === 'grpc') {
+      const rootDir = process.cwd().split('/').slice(0, -1).join('/');
+      const protoFilePath = `${rootDir}/protos/service.proto`;
+      const fs = require('fs');
+
+      const filecontent = fs.readFileSync(protoFilePath, 'utf8');
+      const rcps = await getServiceAndRpcNames(filecontent);
+      options.find((option) => option['key'] === 'protobuf').value = JSON.stringify(rcps, null, 2);
+    }
     const dataSource = await this.dataSourcesService.create(
       name,
       kind,
@@ -79,7 +101,8 @@ export class GlobalDataSourcesController {
       appVersionId,
       user.organizationId,
       scope,
-      pluginId
+      pluginId,
+      environment_id
     );
 
     return decamelizeKeys(dataSource);

@@ -22,7 +22,7 @@ export const databaseText = {
     return `${tableName} created successfully`;
   },
   tableDeletedSuccessfullyToast: (tableName) => {
-    return `Table "${tableName}" deleted successfully`
+    return `Table "${tableName}" deleted successfully`;
   },
   tableEditedSuccessfullyToast: (tableName) => {
     return `${tableName} edited successfully`;
@@ -31,30 +31,29 @@ export const databaseText = {
     return `Table name already exists: ${tableName}`;
   },
   deleteRowToast: (tableName, rowNumber) => {
-    return `Deleted ${rowNumber} rows from table "${tableName}"`
+    return `Deleted ${rowNumber} rows from table "${tableName}"`;
   },
   invalidErrorText: (value) => {
-    return `invalid input syntax for type integer: "${value}"`
-  }
+    return `invalid input syntax for type integer: "${value}"`;
+  },
 };
 
 export const createNewColumnText = {
   createNewColumnHeader: "Create a new column",
-  columnNameLabel: 'Column name',
-  dataTypeLabel: 'Data type',
-  defaultValueLabel: 'Default value',
-  columnCreatedSuccessfullyToast: 'Column created successfully',
-
-}
+  columnNameLabel: "Column name",
+  dataTypeLabel: "Data type",
+  defaultValueLabel: "Default value",
+  columnCreatedSuccessfullyToast: "Column created successfully",
+};
 
 export const createNewRowText = {
-  createNewRowHeader: 'Create a new row',
-  serialDataTypeLabel: 'SERIAL',
-  rowCreatedSuccessfullyToast: 'Row created successfully',
-}
+  createNewRowHeader: "Create a new row",
+  serialDataTypeLabel: "SERIAL",
+  rowCreatedSuccessfullyToast: "Row created successfully",
+};
 
 export const filterText = {
-  filterText: '  Filter',
+  filterText: "  Filter",
   operation: {
     equals: "equals",
     greaterThan: "greater than",
@@ -68,16 +67,23 @@ export const filterText = {
     imatch: "imatch",
     in: "in",
   },
-}
+};
 
 export const sortText = {
-  sortByText: 'Sort by',
+  sortByText: "Sort by",
   order: {
     ascending: "Ascending",
-    descending: "Descending"
-  }
-}
+    descending: "Descending",
+  },
+};
 export const editRowText = {
   editRowHeader: "Edit a row",
-  selectRowToEditText: "Select a row to edit"
-}
+  selectRowToEditText: "Select a row to edit",
+  rowEditedSuccessfullyToast: "Row edited successfully",
+};
+
+export const bulkUploadDataText = {
+  bulkUploadbuttonText: "Bulk upload data",
+  templateHelperText:
+    "Download the template to add your data or format your file in the same as the template. ToolJet won’t be able to recognise files in any other format.",
+};

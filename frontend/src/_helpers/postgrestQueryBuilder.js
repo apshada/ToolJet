@@ -132,9 +132,14 @@ export default class PostgrestQueryBuilder {
    * @param value  The value to filter with.
    */
   is(column, value) {
-    this.url.append(`${column}`, `is.${value}`);
+    if (value === 'notNull') {
+      this.url.append(`${column}`, `not.is.null`);
+    } else {
+      this.url.append(`${column}`, `is.${value}`);
+    }
     return this;
   }
+
   /**
    * Finds all rows whose value on the stated `column` is found on the
    * specified `values`.
@@ -297,7 +302,12 @@ export default class PostgrestQueryBuilder {
    * @param value  The value to filter with.
    */
   filter(column, operator, value) {
-    this.url.append(`${column}`, `${operator}.${value}`);
+    if (operator === 'is') {
+      const val = value.toLowerCase();
+      this.url.append(`${column}`, val === 'not null' ? 'not.is.null' : `${operator}.${val}`);
+    } else {
+      this.url.append(`${column}`, `${operator}.${value}`);
+    }
     return this;
   }
   /**
@@ -321,5 +331,16 @@ export default class PostgrestQueryBuilder {
   offset(offset) {
     this.url.set(`offset`, offset);
     return this;
+  }
+
+  select(colunm_name) {
+    if (this.url.has('select')) {
+      let values = this.url.get('select');
+      values = values.split(',');
+      values.push(colunm_name);
+      this.url.set('select', values.join(','));
+    } else {
+      this.url.set('select', colunm_name);
+    }
   }
 }

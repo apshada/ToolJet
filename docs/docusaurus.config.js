@@ -1,4 +1,14 @@
 const devServerPlugin = require('./src/plugins/devServer/index.js');
+import versionsArchived from './versionsArchived.json';
+
+const baseArchivedURL = "https://archived-docs.tooljet.com/docs/";
+
+const lastFiveArchivedVersions = versionsArchived
+  .slice(0, 5)
+  .map((version, index) => ({
+    version,
+    url: index === 0 ? baseArchivedURL : `${baseArchivedURL}${version}`
+  }));
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -10,7 +20,7 @@ module.exports = {
   baseUrl: '/',
   onBrokenLinks: 'ignore',
   onBrokenMarkdownLinks: 'warn',
-  favicon: 'img/icon.svg',
+  favicon: 'img/tooljet-favicon.svg',
   organizationName: 'ToolJet', // Usually your GitHub org/user name.
   projectName: 'ToolJet', // Usually your repo name.
   themeConfig: {
@@ -34,11 +44,11 @@ module.exports = {
     },
     navbar: {
       logo: {
-        href: '/docs',
+        href: '/docs/',
         alt: 'ToolJet Logo',
-        src: 'img/Logomark.svg',
-        srcDark: `img/Logomark_white.svg`,
-        width: 90
+        src: 'img/Logomark-v2.svg',
+        srcDark: `img/Logomark_white-v2.svg`,
+        width: 120
       },
       items: [
         {
@@ -74,12 +84,6 @@ module.exports = {
       links: [
         {
           title: 'Docs',
-          items: [
-            {
-              label: 'Tutorial',
-              to: '/docs/category/tutorial',
-            },
-          ],
         },
         {
           title: 'Community',
@@ -108,7 +112,8 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} ToolJet Solutions, Inc.`,
+      copyright: `Copyright © ${new Date().getFullYear()} ToolJet Solutions, Inc.
+      <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=4f00afac-ae1f-4cf6-8c53-8a2c7b3ca206" />`,
     },
     algolia: {
       appId: 'O8HQRLI0WA',
@@ -126,18 +131,30 @@ module.exports = {
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           editUrl: 'https://github.com/ToolJet/Tooljet/blob/develop/docs/',
-          includeCurrentVersion: false,
-          lastVersion: '2.4.0',
+          includeCurrentVersion: true,
+          lastVersion: '3.0.0-LTS',
+          versions: {
+            current : {
+              label: '3.1.0-Beta 🚧',
+              path: 'beta',
+            },
+            "2.50.0-LTS": {
+              banner: 'none',
+            }
+          }
         },
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },
-        sitemap: {},
-        gtag: isProd
+        sitemap: {
+          changefreq: 'weekly',
+          priority: 0.5,
+          ignorePatterns: ['/docs/1.x.x/**'],
+          filename: 'sitemap.xml',
+        },
+        googleTagManager: isProd
           ? {
-            trackingID: process.env.GA_MID,
-            // Optional fields.
-            anonymizeIP: true, // Should IPs be anonymized?
+            containerId: process.env.GTM || 'development',
           }
           : undefined,
       },
@@ -145,5 +162,17 @@ module.exports = {
   ],
   plugins: [
     devServerPlugin,
+    'plugin-image-zoom',
+    [
+      '@docusaurus/plugin-client-redirects',
+      {
+        redirects: [
+          {
+            to: '/docs/',
+            from: '/',
+          },
+        ],
+      },
+    ],
   ],
 };

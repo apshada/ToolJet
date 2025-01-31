@@ -11,6 +11,7 @@ import { SeedsService } from '@services/seeds.service';
 import { LoggerModule } from 'nestjs-pino';
 import { SentryModule } from './modules/observability/sentry/sentry.module';
 import * as Sentry from '@sentry/node';
+import * as path from 'path';
 
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -38,11 +39,14 @@ import { EventsModule } from './events/events.module';
 import { GroupPermissionsModule } from './modules/group_permissions/group_permissions.module';
 import { TooljetDbModule } from './modules/tooljet_db/tooljet_db.module';
 import { PluginsModule } from './modules/plugins/plugins.module';
-import * as path from 'path';
-import * as fs from 'fs';
+import { CopilotModule } from './modules/copilot/copilot.module';
 import { AppEnvironmentsModule } from './modules/app_environments/app_environments.module';
+import { OrganizationConstantModule } from './modules/organization_constants/organization_constants.module';
 import { RequestContextModule } from './modules/request_context/request-context.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ImportExportResourcesModule } from './modules/import_export_resources/import_export_resources.module';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
 const imports = [
   ScheduleModule.forRoot(),
@@ -76,6 +80,40 @@ const imports = [
       redact: ['req.headers.authorization'],
     },
   }),
+  MailerModule.forRoot({
+    transport:
+      process.env.NODE_ENV === 'development'
+        ? {
+            host: 'localhost',
+            ignoreTLS: true,
+            secure: false,
+          }
+        : {
+            host: process.env.SMTP_DOMAIN,
+            port: +process.env.SMTP_PORT || 587,
+            secure: process.env.SMTP_SSL === 'true',
+            auth: {
+              user: process.env.SMTP_USERNAME,
+              pass: process.env.SMTP_PASSWORD,
+            },
+          },
+    preview: process.env.NODE_ENV === 'development',
+    template: {
+      dir: join(__dirname, 'mails'),
+      adapter: new HandlebarsAdapter(),
+      options: {
+        strict: false,
+      },
+    },
+    options: {
+      partials: {
+        dir: path.join(__dirname, 'mails/base/partials'),
+        options: {
+          strict: false,
+        },
+      },
+    },
+  }),
   TypeOrmModule.forRoot(ormconfig),
   RequestContextModule,
   AppConfigModule,
@@ -97,33 +135,13 @@ const imports = [
   PluginsModule,
   EventsModule,
   AppEnvironmentsModule,
+  ImportExportResourcesModule,
+  CopilotModule,
+  OrganizationConstantModule,
+  TooljetDbModule,
 ];
 
-if (process.env.SERVE_CLIENT !== 'false') {
-  const filesToReplaceAssetPath = ['index.html', 'runtime.js', 'main.js'];
-
-  for (const fileName of filesToReplaceAssetPath) {
-    const file = join(__dirname, '../../../', 'frontend/build', fileName);
-
-    let newValue = process.env.SUB_PATH;
-
-    if (process.env.SUB_PATH === undefined) {
-      newValue = fileName === 'index.html' ? '/' : '';
-    }
-
-    fs.readFile(file, 'utf8', function (err, data) {
-      if (err) {
-        return console.log(err);
-      }
-      const result = data
-        .replace(/__REPLACE_SUB_PATH__\/api/g, path.join(newValue, '/api'))
-        .replace(/__REPLACE_SUB_PATH__/g, newValue);
-      fs.writeFile(file, result, 'utf8', function (err) {
-        if (err) return console.log(err);
-      });
-    });
-  }
-
+if (process.env.SERVE_CLIENT !== 'false' && process.env.NODE_ENV === 'production') {
   imports.unshift(
     ServeStaticModule.forRoot({
       // Have to remove trailing slash of SUB_PATH.
@@ -148,7 +166,6 @@ if (process.env.COMMENT_FEATURE_ENABLE !== 'false') {
 }
 
 if (process.env.ENABLE_TOOLJET_DB === 'true') {
-  imports.unshift(TooljetDbModule);
   imports.unshift(TypeOrmModule.forRoot(tooljetDbOrmconfig));
 }
 

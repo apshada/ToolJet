@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
-import 'codemirror/theme/duotone-light.css';
 import { componentTypes } from '../WidgetManager/components';
 import { DataSourceTypes } from '../DataSourceManager/SourceComponents';
 import { debounce } from 'lodash';
 import Fuse from 'fuse.js';
 import { useTranslation } from 'react-i18next';
 
-export function CodeBuilder({ initialValue, onChange, components, dataQueries }) {
+import { useDataQueries } from '@/_stores/dataQueriesStore';
+
+export function CodeBuilder({ initialValue, onChange, components }) {
+  const dataQueries = useDataQueries();
   const [showDropdown, setShowDropdown] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [currentValue, setCurrentValue] = useState(initialValue);
@@ -93,7 +95,6 @@ export function CodeBuilder({ initialValue, onChange, components, dataQueries })
         return { item: item };
       });
     } else {
-      console.log(currentWord);
       filteredVariables = fuse.search(currentWord);
     }
     return filteredVariables.map((variable) => renderVariable(type, key, variable.item.name));

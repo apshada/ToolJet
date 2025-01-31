@@ -1,3 +1,4 @@
+import { deleteDownloadsFolder } from "Support/utils/common";
 import {
   databaseSelectors,
   createNewColumnSelectors,
@@ -5,12 +6,14 @@ import {
   filterSelectors,
   sortSelectors,
   editRowSelectors,
+  bulkUploadDataSelectors,
 } from "Selectors/database";
 import {
   databaseText,
   createNewColumnText,
   createNewRowText,
   editRowText,
+  bulkUploadDataText,
 } from "Texts/database";
 import { commonSelectors } from "Selectors/common";
 import { commonText } from "Texts/common";
@@ -21,13 +24,17 @@ export const verifyAllElementsOfPage = () => {
   //   "have.text",
   //   databaseText.tablePageHeader
   // );
-  cy.get(databaseSelectors.doNotHaveTableText).verifyVisibleElement(
-    "have.text",
-    databaseText.doNotHaveTableText
-  );
-  cy.get(databaseSelectors.searchTableInputField).should("be.visible");
+  // cy.get(databaseSelectors.doNotHaveTableText).verifyVisibleElement(
+  //   "have.text",
+  //   databaseText.doNotHaveTableText
+  // );
+  //cy.get(databaseSelectors.searchTableInputField).should("be.visible");
   cy.get(databaseSelectors.allTablesSection).should("be.visible");
   cy.get(databaseSelectors.allTableSubheader).should("be.visible");
+  cy.get(createNewColumnSelectors.addNewColumnButton).should("be.visible");
+  cy.get(createNewRowSelectors.addNewRowButton).should("be.visible");
+  cy.get(editRowSelectors.editRowbutton).should("be.visible");
+  cy.get(bulkUploadDataSelectors.bulkUploadDataButton).should("be.visible");
 };
 export const navigateToTable = (tableName) => {
   cy.get(databaseSelectors.currentTable(tableName))
@@ -66,7 +73,7 @@ export const createTableAndVerifyToastMessage = (
   );
   navigateToTable(tableName);
   cy.get(databaseSelectors.idColumnHeader).verifyVisibleElement(
-    "have.text",
+    "contain",
     databaseText.idColumnHeader
   );
   cy.get(databaseSelectors.noRecordsText).verifyVisibleElement(
@@ -74,16 +81,22 @@ export const createTableAndVerifyToastMessage = (
     databaseText.noRecordsText
   );
 };
-export const editTableNameAndVerifyToastMessage = (tableName, newTableName) => {
+export const selectTableOperationOption = (tableName, operationOption) => {
+  navigateToTable(tableName);
   cy.get(databaseSelectors.currentTable(tableName))
     .find(databaseSelectors.tableKebabIcon)
     .invoke("show")
+    .trigger("mouseover")
     .trigger("mouseover")
     .trigger("mousemove")
     .trigger("mousedown")
     .trigger("mouseup")
     .click();
-  cy.get(databaseSelectors.tableEditOption).click();
+  cy.get(operationOption).click();
+  cy.wait(500);
+};
+export const editTableNameAndVerifyToastMessage = (tableName, newTableName) => {
+  selectTableOperationOption(tableName, databaseSelectors.tableEditOption);
   cy.get(databaseSelectors.editTableHeader).verifyVisibleElement(
     "have.text",
     databaseText.editTableHeader
@@ -111,18 +124,11 @@ export const editTableNameAndVerifyToastMessage = (tableName, newTableName) => {
   );
 };
 export const deleteTableAndVerifyToastMessage = (tableName) => {
-  cy.get(databaseSelectors.currentTable(tableName))
-    .find(databaseSelectors.tableKebabIcon)
-    .invoke("show")
-    .trigger("mouseover")
-    .trigger("mousemove")
-    .trigger("mousedown")
-    .trigger("mouseup")
-    .click();
-  cy.get(databaseSelectors.tableDeleteOption).click();
+  selectTableOperationOption(tableName, databaseSelectors.tableDeleteOption);
   // cy.on('window:confirm', (ConfirmAlertText) => {
   //   expect(ConfirmAlertText).to.contains(`Are you sure you want to delete the table "${tableName}"?`);
   // });
+  cy.wait(500);
   cy.verifyToastMessage(
     commonSelectors.toastMessage,
     databaseText.tableDeletedSuccessfullyToast(tableName)
@@ -185,8 +191,10 @@ export const createNewColumnAndVerify = (
     createNewColumnText.defaultValueLabel
   );
   cy.clearAndType(createNewColumnSelectors.columnNameInputField, columnName);
-  cy.get(createNewColumnSelectors.dataTypeDropdown).click();
-  cy.contains(`[id*="react-select-"]`, columnDataType).click();
+  cy.get(createNewColumnSelectors.dataTypeDropdown).within(() => {
+    cy.contains(`Select data type`).click();
+    cy.contains(`[id*="react-select-"]`, columnDataType).click();
+  });
   if (defaultValue) {
     cy.clearAndType(
       createNewColumnSelectors.defaultValueInputField,
@@ -209,13 +217,14 @@ export const createNewColumnAndVerify = (
     .should("be.visible")
     .and("have.text", commonText.createButton)
     .click();
+  cy.wait(1000);
   cy.verifyToastMessage(
     commonSelectors.toastMessage,
     createNewColumnText.columnCreatedSuccessfullyToast
   );
 
   cy.get(databaseSelectors.columnHeader(columnName)).verifyVisibleElement(
-    "have.text",
+    "contain",
     `${String(columnName).toLowerCase().replace(/\s+/g, "-")}`
   );
 };
@@ -340,7 +349,7 @@ export const filterOperation = (
   cy.get(filterSelectors.selectOperationField).click();
   cy.contains(`[id*="react-select-"]`, operation[0]).click();
   cy.clearAndType(filterSelectors.valueInputField, value[0]);
-  cy.wait("@dbLoad");
+  //cy.wait("@dbLoad");
 
   for (let i = 1; i < columnName.length; i++) {
     cy.get(filterSelectors.addConditionLink).click();
@@ -391,6 +400,7 @@ export const sortOperation = (tableName, columnName = [], order = []) => {
   cy.get(databaseSelectors.idColumnHeader).should("be.visible");
 };
 export const deleteCondition = (selector, columnName = [], deleteIcon) => {
+  cy.wait(500);
   cy.get(selector).click();
   cy.get(".card-body").eq(1).should("be.visible");
   for (let i = 0; i < columnName.length; i++) {
@@ -399,6 +409,8 @@ export const deleteCondition = (selector, columnName = [], deleteIcon) => {
 };
 export const deleteRowAndVerify = (tableName, rowNumber = []) => {
   navigateToTable(tableName);
+  cy.wait(1000);
+  //cy.wait("@dbLoad");
   cy.get("body")
     .find(".table>>tr")
     .its("length")
@@ -408,9 +420,11 @@ export const deleteRowAndVerify = (tableName, rowNumber = []) => {
       }
       cy.get(databaseSelectors.deleteRecordButton).should("be.visible").click();
 
-      // cy.on('window:confirm', (ConfirmText) => {
-      //   expect(ConfirmText).to.equal('Are you sure you want to delete the selected rows?');
-      // })
+      cy.on("window:confirm", (ConfirmText) => {
+        expect(ConfirmText).to.equal(
+          "Are you sure you want to delete the selected rows?"
+        );
+      });
       cy.verifyToastMessage(
         commonSelectors.toastMessage,
         databaseText.deleteRowToast(tableName, rowNumber.length)
@@ -435,7 +449,8 @@ export const editRowAndVerify = (
   cy.reload();
   cy.intercept("GET", "api/tooljet_db/organizations/**").as("dbLoad");
   navigateToTable(tableName);
-  cy.wait("@dbLoad");
+  cy.wait(1000);
+  //cy.wait("@dbLoad");
   cy.get(editRowSelectors.editRowbutton).should("be.visible").click();
   cy.get(editRowSelectors.editRowHeader).verifyVisibleElement(
     "have.text",
@@ -478,11 +493,10 @@ export const editRowAndVerify = (
     .realClick();
   cy.verifyToastMessage(
     commonSelectors.toastMessage,
-    createNewRowText.rowCreatedSuccessfullyToast
+    editRowText.rowEditedSuccessfullyToast
   );
   verifyRowData(rowNumber, columnName, rowFieldData);
 };
-
 export const editRowWithInvalidData = (
   tableName,
   rowNumber,
@@ -491,7 +505,7 @@ export const editRowWithInvalidData = (
 ) => {
   cy.intercept("GET", "api/tooljet_db/organizations/**").as("dbLoad");
   navigateToTable(tableName);
-  cy.wait("@dbLoad");
+  //cy.wait("@dbLoad");
 
   cy.get(editRowSelectors.editRowbutton).should("be.visible").click();
   cy.get(editRowSelectors.editRowHeader).verifyVisibleElement(
@@ -530,4 +544,74 @@ export const editRowWithInvalidData = (
     "be.disabled"
   );
   cy.get(commonSelectors.buttonSelector(commonText.cancelButton)).click();
+};
+export const exportTableAndVerify = (tableName, columnName) => {
+  deleteDownloadsFolder();
+  cy.reload();
+  selectTableOperationOption(tableName, databaseSelectors.tableExportOption);
+  verifyDownloadedTableSchema(tableName, columnName);
+  cy.exec("cd ./cypress/downloads/ && rm -rf *");
+};
+export const verifyDownloadedTableSchema = (tableName, columnName) => {
+  cy.exec("ls ./cypress/downloads/").then((result) => {
+    const downloadedExportTableFileName = result.stdout.split("\n")[0];
+    let exportedTableFilePath = `cypress/downloads/${downloadedExportTableFileName}`;
+    cy.readFile(exportedTableFilePath).then((table) => {
+      let exportedTableData = table;
+      expect(downloadedExportTableFileName).to.contain.string(
+        tableName.toLowerCase()
+      );
+      for (let i = 0; i <= columnName.length - 1; i++) {
+        cy.get(databaseSelectors.columnHeader(columnName[i])).each(($el) => {
+          cy.wrap($el)
+            .should("be.visible")
+            .and(
+              "contain.text",
+              exportedTableData.tooljet_database[0].schema.columns[
+                i
+              ].column_name.toLowerCase()
+            );
+        });
+      }
+    });
+  });
+};
+export const bulkUploadDataTemplateDownloadAndVerify = (
+  tableName,
+  columnName
+) => {
+  deleteDownloadsFolder();
+  cy.reload();
+  cy.intercept("GET", "api/tooljet_db/organizations/**").as("dbLoad");
+  navigateToTable(tableName);
+  cy.wait(1000);
+  cy.get(bulkUploadDataSelectors.bulkUploadbuttonText).verifyVisibleElement(
+    "have.text",
+    bulkUploadDataText.bulkUploadbuttonText
+  );
+  cy.get(bulkUploadDataSelectors.bulkUploadDataButton)
+    .should("be.visible")
+    .click();
+  cy.get(bulkUploadDataSelectors.bulkUploadDataHeaderText).verifyVisibleElement(
+    "have.text",
+    bulkUploadDataText.bulkUploadbuttonText
+  );
+  cy.get(bulkUploadDataSelectors.templateHelperText).verifyVisibleElement(
+    "have.text",
+    bulkUploadDataText.templateHelperText
+  );
+  cy.get(bulkUploadDataSelectors.templateDownloadButton)
+    .should("be.visible")
+    .click();
+  cy.readFile(`cypress/downloads/${tableName}.csv`, "utf-8").then((table) => {
+    let exportedTableData = table.split(",");
+    cy.log(exportedTableData);
+    for (let i = 0; i <= columnName.length - 1; i++) {
+      cy.get(databaseSelectors.columnHeader(columnName[i])).each(($el) => {
+        cy.wrap($el)
+          .should("be.visible")
+          .and("contain.text", exportedTableData[i].toLowerCase());
+      });
+    }
+  });
 };

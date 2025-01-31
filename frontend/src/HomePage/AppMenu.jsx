@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 
 export const AppMenu = function AppMenu({
   deleteApp,
-  cloneApp,
   exportApp,
   canCreateApp,
   canDeleteApp,
@@ -14,6 +13,8 @@ export const AppMenu = function AppMenu({
   openAppActionModal,
   darkMode,
   currentFolder,
+  popoverVisible,
+  setMenuOpen,
 }) {
   const { t } = useTranslation();
   const Field = ({ text, onClick, customClass }) => {
@@ -39,14 +40,22 @@ export const AppMenu = function AppMenu({
   return (
     <OverlayTrigger
       trigger="click"
-      placement="bottom-end"
+      placement="top-start"
       rootClose
       onToggle={onMenuOpen}
+      onExit={() => setMenuOpen(false)}
+      show={popoverVisible}
       overlay={
         <div>
           <Popover id="popover-app-menu" className={darkMode && 'dark-theme'} placement="bottom">
             <Popover.Body bsPrefix="popover-body">
               <div data-cy="card-options">
+                {canUpdateApp && (
+                  <Field
+                    text={t('homePage.appCard.renameApp', 'Rename app')}
+                    onClick={() => openAppActionModal('rename-app')}
+                  />
+                )}
                 {canUpdateApp && (
                   <Field
                     text={t('homePage.appCard.changeIcon', 'Change Icon')}
@@ -66,7 +75,14 @@ export const AppMenu = function AppMenu({
                         onClick={() => openAppActionModal('remove-app-from-folder')}
                       />
                     )}
-                    <Field text={t('homePage.appCard.cloneApp', 'Clone app')} onClick={cloneApp} />
+                  </>
+                )}
+                {canUpdateApp && canCreateApp && (
+                  <>
+                    <Field
+                      text={t('homePage.appCard.cloneApp', 'Clone app')}
+                      onClick={() => openAppActionModal('clone-app')}
+                    />
                     <Field text={t('homePage.appCard.exportApp', 'Export app')} onClick={exportApp} />
                   </>
                 )}
