@@ -3,7 +3,10 @@ id: ubuntu
 title: Ubuntu
 ---
 
-# Ubuntu
+:::warning
+The following guide is intended for contributors to set-up ToolJet locally. If you're interested in **self-hosting** ToolJet, please refer to the **[Setup](/docs/setup/)** section.
+:::
+
 Follow these steps to setup and run ToolJet on Ubuntu. Open terminal and run the commands below.
 
 ## Setting up
@@ -80,8 +83,12 @@ Follow these steps to setup and run ToolJet on Ubuntu. Open terminal and run the
 
 5. Set up database
     ```bash
+    npm run --prefix server db:create
     npm run --prefix server db:reset
     ```
+    :::info
+    If at any point you need to reset the database, use this command `npm run --prefix server db:reset`
+    :::
 
 6. Run plugins compilation in watch mode
     ```bash
@@ -99,7 +106,7 @@ Follow these steps to setup and run ToolJet on Ubuntu. Open terminal and run the
     ```
 
 
-    The client will start running on the port 8082, you can access the client by visiting:  [https://localhost:8082](https://localhost:8082)
+    The client will start running on the port 8082, you can access the client by visiting:  [http://localhost:8082](http://localhost:8082)
 
 9. Create login credentials
 

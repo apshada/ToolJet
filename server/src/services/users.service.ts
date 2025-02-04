@@ -11,6 +11,7 @@ import { BadRequestException } from '@nestjs/common';
 import { cleanObject, dbTransactionWrap } from 'src/helpers/utils.helper';
 import { CreateFileDto } from '@dto/create-file.dto';
 import { WORKSPACE_USER_STATUS } from 'src/helpers/user_lifecycle';
+import { Organization } from 'src/entities/organization.entity';
 const uuid = require('uuid');
 const bcrypt = require('bcrypt');
 
@@ -21,15 +22,24 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(App)
-    private appsRepository: Repository<App>
+    private appsRepository: Repository<App>,
+    @InjectRepository(Organization)
+    private organizationsRepository: Repository<Organization>
   ) {}
 
   async getCount(): Promise<number> {
     return this.usersRepository.count();
   }
 
-  async findOne(id: string): Promise<User> {
-    return this.usersRepository.findOne({ where: { id } });
+  async getAppOrganizationDetails(app: App): Promise<Organization> {
+    return this.organizationsRepository.findOneOrFail({
+      select: ['id', 'slug'],
+      where: { id: app.organizationId },
+    });
+  }
+
+  async findOne(where = {}): Promise<User> {
+    return this.usersRepository.findOne({ where });
   }
 
   async findByEmail(
@@ -42,6 +52,7 @@ export class UsersService {
       if (!organizationId) {
         return manager.findOne(User, {
           where: { email },
+          relations: ['organization'],
         });
       } else {
         const statusList = status
@@ -199,7 +210,6 @@ export class UsersService {
       if (removeGroups.includes('all_users')) {
         throw new BadRequestException('Cannot remove user from default group.');
       }
-
       await dbTransactionWrap(async (manager: EntityManager) => {
         const groupPermissions = await manager.find(GroupPermission, {
           group: In(removeGroups),
@@ -268,6 +278,9 @@ export class UsersService {
 
       case 'OrgEnvironmentVariable':
         return await this.canUserPerformActionOnEnvironmentVariable(user, action);
+
+      case 'OrganizationConstant':
+        return await this.canUserPerformActionOnOrgEnvironmentConstants(user, action);
 
       default:
         return false;
@@ -352,6 +365,32 @@ export class UsersService {
     return permissionGrant;
   }
 
+  async canUserPerformActionOnOrgEnvironmentConstants(user: User, action: string): Promise<boolean> {
+    let permissionGrant: boolean;
+
+    switch (action) {
+      case 'create':
+      case 'update':
+        permissionGrant = this.canAnyGroupPerformAction(
+          'orgEnvironmentConstantCreate',
+          await this.groupPermissions(user)
+        );
+        break;
+
+      case 'delete':
+        permissionGrant = this.canAnyGroupPerformAction(
+          'orgEnvironmentConstantDelete',
+          await this.groupPermissions(user)
+        );
+        break;
+      default:
+        permissionGrant = false;
+        break;
+    }
+
+    return permissionGrant;
+  }
+
   async isUserOwnerOfApp(user: User, appId: string): Promise<boolean> {
     const app: App = await this.appsRepository.findOne({
       where: {
@@ -362,9 +401,17 @@ export class UsersService {
     return !!app && app.organizationId === user.organizationId;
   }
 
-  async returnOrgIdOfAnApp(appId: string): Promise<any> {
-    const app = await this.appsRepository.findOne(appId);
-    return app?.organizationId;
+  async returnOrgIdOfAnApp(slug: string): Promise<{ organizationId: string; isPublic: boolean }> {
+    let app: App;
+    try {
+      app = await this.appsRepository.findOneOrFail(slug);
+    } catch (error) {
+      app = await this.appsRepository.findOne({
+        slug,
+      });
+    }
+
+    return { organizationId: app?.organizationId, isPublic: app?.isPublic };
   }
 
   async addAvatar(userId: number, imageBuffer: Buffer, filename: string) {
